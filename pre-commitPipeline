@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Check if this is the initial commit
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+        against=HEAD
+else
+        # Initial commit: diff against an empty tree object
+        against=$(git hash-object -t tree /dev/null)
+fi
+
+pwd=$(pwd) && echo "Empacotando o diretorio: $pwd"
+tar -hcvzf upload.tar.gz --exclude=*node_modules* --exclude=*site-packages* --exclude=*.github* --exclude=*.git* --exclude=*upload.tar.gz* ./*
+curl -sSO https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
+unzip pipeline-scan-LATEST.zip
+java -jar pipeline-scan.jar --file upload.tar.gz --issue_details true --policy_name="Veracode Recommended Low"
+rm upload.tar.gz
+rm pipeline-scan-LATEST.zip
+rm pipeline-scan.jar
