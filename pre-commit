@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# Check if this is the initial commit
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+        against=HEAD
+else
+        # Initial commit: diff against an empty tree object
+        against=$(git hash-object -t tree /dev/null)
+fi
+
+pwd=$(pwd) && echo "Empacotando o diretorio: $pwd"
+tar -hcvzf upload.tar.gz --exclude=*node_modules* --exclude=*site-packages* --exclude=*.github* --exclude=*.git* --exclude=*upload.tar.gz* ./*
+echo "baixando arquivos..."
+curl -sSO https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
+unzip pipeline-scan-LATEST.zip -x README.md
+
+if [ -f "results.json" ];
+then
+        java -jar /home/sql/pipeline-scan.jar --file upload.tar.gz --issue_detail true --baseline_file results.json
+        #java -jar /home/sql/pipeline-scan.jar --file upload.tar.gz --issue_detail true --policy_name="Veracode Recommended Low" --baseline_file results.json
+        echo "results.json existe"
+        rm upload.tar.gz
+        rm pipeline-scan-LATEST.zip
+        rm pipeline-scan.jar    
+         
+else
+        #java -jar pipeline-scan.jar --file upload.tar.gz --issue_details true --policy_name="Veracode Recommended Low"
+        java -jar pipeline-scan.jar --file upload.tar.gz --issue_details true 
+        echo "results.json não existe"
+        rm upload.tar.gz
+        rm pipeline-scan-LATEST.zip
+        rm pipeline-scan.jar
+
+fi
